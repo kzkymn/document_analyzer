@@ -1,0 +1,23 @@
+# プロンプト設定
+prompt:
+  template_path: "prompt.txt"  # プロンプトテンプレートのパス（相対パスまたは絶対パス）
+  description: "週次レポートチェック"  # 説明（オプション）
+
+# ロギング設定
+logging:
+  level: "INFO"
+
+# LLM設定
+llm:
+  default: "openai"  # OpenAIモデルをデフォルトに設定
+  models:
+    gemini:
+      model_name: "gemini-2.0-flash"
+    openai:
+      model_name: "gpt-4o-mini"  # 使用するOpenAIモデル
+      temperature: 0.0
+      max_tokens: 16384
+
+# 出力設定
+output:
+  format: "markdown"

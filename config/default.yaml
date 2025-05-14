@@ -1,0 +1,50 @@
+# アプリケーションのデフォルト設定
+
+# 使用するLLM設定
+llm:
+  default: "gemini"  # デフォルトで使用するLLM
+  models:
+    gemini:
+      model_name: "gemini-2.0-flash"
+      temperature: 0.2
+      max_output_tokens: 2048
+      top_p: 0.95
+      top_k: 40
+    openai:
+      model_name: "gpt-4o"
+      temperature: 0.2
+      max_tokens: 2048
+
+# 出力設定
+output:
+  format: "markdown"  # 出力フォーマット（markdown）
+  include_confidence: true  # 信頼度スコアを含めるか
+  include_evidence: true  # 根拠を含めるか
+  include_recommendations: true  # 推奨事項を含めるか
+
+# ファイル処理設定
+file_processing:
+  max_file_size_mb: 10  # 処理する最大ファイルサイズ（MB）
+  supported_extensions:  # サポートするファイル拡張子
+    - ".txt"
+    - ".pdf"
+    - ".docx"
+    - ".xlsx"
+    - ".pptx"
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+
+# ロギング設定
+logging:
+  level: "INFO"  # ログレベル（DEBUG, INFO, WARNING, ERROR, CRITICAL）
+  file: "check.log"  # ログファイル名
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # ログフォーマット
+
+# プロンプトファイルパス設定
+prompts:
+  default_analysis: "config/prompts/default_analysis_prompt.txt"
+  pair_check: "config/prompts/pair_check_prompt.txt"
+  should_extract: "config/prompts/should_extract_prompt.txt"
+  condition_extraction: "config/prompts/condition_extraction_prompt.txt"
+  fact_extraction: "config/prompts/fact_extraction_prompt.txt"

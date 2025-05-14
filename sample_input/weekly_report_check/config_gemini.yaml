@@ -1,0 +1,19 @@
+# プロンプト設定
+prompt:
+  template_path: "prompt.txt"  # プロンプトテンプレートのパス（相対パスまたは絶対パス）
+  description: "週次レポートチェック"  # 説明（オプション）
+
+# ロギング設定
+logging:
+  level: "INFO"
+
+# LLM設定
+llm:
+  default: "gemini"
+  models:
+    gemini:
+      model_name: "gemini-2.0-flash"
+
+# 出力設定
+output:
+  format: "markdown"
