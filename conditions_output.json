@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "text": "週次報告書は、以下の項目で構成されなければならない。1. 基本情報（氏名、所属、報告期間）2. 今週の作業概要3. 実施タスクの詳細4. 発生した問題点とその対応5. 来週の予定6. その他特記事項",
+    "parent_id": null,
+    "type": "condition",
+    "source": "sample_input/weekly_report_check/writing_guidelines.txt"
+  },
+  {
+    "id": 2,
+    "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+    "parent_id": 1,
+    "type": "condition",
+    "source": "sample_input/weekly_report_check/writing_guidelines.txt"
+  },
+  {
+    "id": 3,
+    "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+    "parent_id": 1,
+    "type": "condition",
+    "source": "sample_input/weekly_report_check/writing_guidelines.txt"
+  }
+]

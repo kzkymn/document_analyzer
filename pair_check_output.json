@@ -1,0 +1,252 @@
+{
+  "overall_status": "non_compliant",
+  "pair_results": [
+    {
+      "condition": {
+        "text": "週次報告書は、以下の項目で構成されなければならない。1. 基本情報（氏名、所属、報告期間）2. 今週の作業概要3. 実施タスクの詳細4. 発生した問題点とその対応5. 来週の予定6. その他特記事項",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": null,
+        "id": 1,
+        "children": [
+          {
+            "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 2,
+            "children": null
+          },
+          {
+            "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 3,
+            "children": null
+          }
+        ]
+      },
+      "fact": {
+        "text": "基本情報：氏名は山田太郎である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 1,
+        "children": null
+      },
+      "status": "non_compliant",
+      "confidence_score": 0.8,
+      "explanation": "ファクトは基本情報の一部（氏名）を提供しているが、他の必要項目（所属、報告期間）が欠けているため、チェック条件に準拠していない。"
+    },
+    {
+      "condition": {
+        "text": "週次報告書は、以下の項目で構成されなければならない。1. 基本情報（氏名、所属、報告期間）2. 今週の作業概要3. 実施タスクの詳細4. 発生した問題点とその対応5. 来週の予定6. その他特記事項",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": null,
+        "id": 1,
+        "children": [
+          {
+            "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 2,
+            "children": null
+          },
+          {
+            "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 3,
+            "children": null
+          }
+        ]
+      },
+      "fact": {
+        "text": "基本情報：所属は開発部 バックエンドチームである。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 2,
+        "children": null
+      },
+      "status": "non_compliant",
+      "confidence_score": 0.8,
+      "explanation": "ファクトには基本情報の一部（所属）が含まれているが、氏名や報告期間が欠けているため、チェック条件を満たしていない。"
+    },
+    {
+      "condition": {
+        "text": "週次報告書は、以下の項目で構成されなければならない。1. 基本情報（氏名、所属、報告期間）2. 今週の作業概要3. 実施タスクの詳細4. 発生した問題点とその対応5. 来週の予定6. その他特記事項",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": null,
+        "id": 1,
+        "children": [
+          {
+            "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 2,
+            "children": null
+          },
+          {
+            "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+            "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+            "item_type": "condition",
+            "parent_id": 1,
+            "id": 3,
+            "children": null
+          }
+        ]
+      },
+      "fact": {
+        "text": "基本情報：報告期間は2025/4/21～2025/4/27である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 3,
+        "children": null
+      },
+      "status": "compliant",
+      "confidence_score": 1.0,
+      "explanation": "報告期間が2025/4/21～2025/4/27であることは、チェック条件の「基本情報」に該当し、要件を満たしている。"
+    },
+    {
+      "condition": {
+        "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 2,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：氏名は山田太郎である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 1,
+        "children": null
+      },
+      "status": "non_compliant",
+      "confidence_score": 0.8,
+      "explanation": "氏名は記載されているが、所属と報告期間が欠けているため、チェック条件に違反している。"
+    },
+    {
+      "condition": {
+        "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 2,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：所属は開発部 バックエンドチームである。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 2,
+        "children": null
+      },
+      "status": "non_compliant",
+      "confidence_score": 0.8,
+      "explanation": "ファクトには「氏名」と「報告期間」が記載されておらず、基本情報の要件を満たしていないため違反と判断。"
+    },
+    {
+      "condition": {
+        "text": "基本情報には、以下の項目を必ず記載すること。1. 氏名：報告者の氏名2. 所属：報告者の所属部署・チーム名3. 報告期間：報告対象となる期間（例：2025/4/21～2025/4/27）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 2,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：報告期間は2025/4/21～2025/4/27である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 3,
+        "children": null
+      },
+      "status": "non_compliant",
+      "confidence_score": 0.9,
+      "explanation": "報告期間は記載されているが、氏名と所属が欠けているため、チェック条件に違反している。"
+    },
+    {
+      "condition": {
+        "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 3,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：氏名は山田太郎である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 1,
+        "children": null
+      },
+      "status": "unrelated",
+      "confidence_score": 1.0,
+      "explanation": "ファクトは氏名に関する情報のみで、チェック条件に必要なプロジェクト名やタスク概要、進捗状況が含まれていないため無関係である。"
+    },
+    {
+      "condition": {
+        "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 3,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：所属は開発部 バックエンドチームである。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 2,
+        "children": null
+      },
+      "status": "unrelated",
+      "confidence_score": 0.2,
+      "explanation": "ファクトは基本情報のみで、チェック条件に必要なプロジェクト名、タスク概要、進捗状況が含まれていないため、無関係と判断。"
+    },
+    {
+      "condition": {
+        "text": "今週の作業概要には、以下の内容を簡潔に記載すること。1. 担当プロジェクト名2. 実施した主要タスクの概要（3行程度）3. 全体の進捗状況（予定に対する進捗率）",
+        "source": "sample_input/weekly_report_check/writing_guidelines.txt",
+        "item_type": "condition",
+        "parent_id": 1,
+        "id": 3,
+        "children": null
+      },
+      "fact": {
+        "text": "基本情報：報告期間は2025/4/21～2025/4/27である。",
+        "source": "sample_input/weekly_report_check/compliant_report.txt",
+        "item_type": "fact",
+        "parent_id": null,
+        "id": 3,
+        "children": null
+      },
+      "status": "unrelated",
+      "confidence_score": 0.9,
+      "explanation": "ファクトは報告期間のみを示しており、チェック条件に必要なプロジェクト名、タスク概要、進捗状況が含まれていないため、無関係と判断。"
+    }
+  ],
+  "compliant_count": 1,
+  "non_compliant_count": 5,
+  "unrelated_count": 3,
+  "unknown_count": 0,
+  "total_count": 9,
+  "compliance_rate": 0.1111111111111111,
+  "summary": "5個のペアが非適合です。適合率: 11.1%"
+}
