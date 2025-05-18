@@ -379,7 +379,7 @@ class CheckCommand:
                 sys.exit(-2)
 
         except Exception as e:
-            logger.error(f"エラーが発生しました: {str(e)}")
+            logger.exception("エラーが発生しました")
             self.console.print(f"[bold red]エラー:[/bold red] {str(e)}")
             sys.exit(-1)
 
