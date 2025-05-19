@@ -69,7 +69,7 @@ def extract_or_load_items(
             )
 
         # 抽出結果をファイルに保存
-        extractor.save_items_to_file(items, output_path_obj)
+        extractor.file_handler.save_items_to_file(items, output_path_obj)
         console.print(
             f"[bold green]{len(items)}個の{item_name}を抽出しました。保存先: {output_path}[/bold green]"
         )

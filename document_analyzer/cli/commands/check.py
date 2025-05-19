@@ -146,7 +146,7 @@ class CheckCommand:
                 )
                 # オプションが指定されている場合のみ既存ファイルを読み込む
                 if Path(self.conditions_output).exists():
-                    conditions = extractor.load_items_from_file(
+                    conditions = extractor.file_handler.load_items_from_file(
                         self.conditions_output, PairCheckItemType.CONDITION
                     )
                 else:
@@ -196,7 +196,7 @@ class CheckCommand:
                 )
                 # オプションが指定されている場合のみ既存ファイルを読み込む
                 if Path(self.facts_output).exists():
-                    facts = extractor.load_items_from_file(
+                    facts = extractor.file_handler.load_items_from_file(
                         self.facts_output, PairCheckItemType.FACT
                     )
                 else:
