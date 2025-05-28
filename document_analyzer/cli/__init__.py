@@ -4,8 +4,7 @@
 
 import click
 
-from .commands.check import check_command
-from .commands.serve import serve_command
+from document_analyzer.cli.commands.check import check_command
 
 
 @click.group()
@@ -17,7 +16,6 @@ def cli():
 
 # コマンドを登録
 cli.add_command(check_command, name="check")
-cli.add_command(serve_command, name="serve")
 
 
 def main():
