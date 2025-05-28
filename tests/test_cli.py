@@ -92,18 +92,54 @@ def test_check_command_with_config():
         with open(target_path, "w", encoding="utf-8") as f:
             f.write("テスト用のターゲットファイル")
 
-        # TextComparisonAnalyzer.analyzeをモック
+        # TextComparisonAnalyzer とその依存関係をモック
         with mock.patch(
-            "document_analyzer.core.analyzer.TextComparisonAnalyzer.analyze"
-        ) as mock_analyze:
-            # モックの戻り値を設定
-            mock_analyze.return_value = AnalysisResult(
-                status=ComplianceStatus.COMPLIANT,
-                confidence_score=0.95,
-                summary="テスト用の要約",
-                evidence=[Evidence(text="テスト用の根拠", source="test_source.txt")],
-                recommendations=[],
-                raw_response={"response": "テスト用のレスポンス"},
+            "document_analyzer.cli.commands.check.TextComparisonAnalyzer"
+        ) as MockAnalyzer, mock.patch(
+            "document_analyzer.core.extractor.TextExtractor.extract_conditions"
+        ) as mock_extract_conditions, mock.patch(
+            "document_analyzer.core.extractor.TextExtractor.extract_facts"
+        ) as mock_extract_facts, mock.patch(
+            "document_analyzer.cli.commands.check.run_pair_check"
+        ) as mock_run_pair_check:
+            # MockAnalyzerのインスタンスとそのprocessor属性をモック
+            mock_analyzer_instance = MockAnalyzer.return_value
+            mock_analyzer_instance.processor = mock.Mock()
+            mock_analyzer_instance.processor.should_extract_items.return_value = (
+                True,
+                "mocked",
+            )
+
+            # extract_conditions と extract_facts のモック戻り値を設定
+            conditions = [
+                PairCheckItem(
+                    text="条件1",
+                    source="test_source.txt",
+                    item_type=PairCheckItemType.CONDITION,
+                )
+            ]
+            mock_extract_conditions.return_value = conditions
+
+            facts = [
+                PairCheckItem(
+                    text="ファクト1",
+                    source="test_target.txt",
+                    item_type=PairCheckItemType.FACT,
+                )
+            ]
+            mock_extract_facts.return_value = facts
+
+            # run_pair_check のモック戻り値を設定
+            mock_run_pair_check.return_value = PairCheckResult(
+                overall_status=ComplianceStatus.COMPLIANT,
+                pair_results=[],
+                compliant_count=1,
+                non_compliant_count=0,
+                unrelated_count=0,
+                unknown_count=0,
+                total_count=1,
+                compliance_rate=1.0,
+                summary="テスト用のペアチェック要約",
             )
 
             # CLIコマンドを実行
@@ -117,11 +153,25 @@ def test_check_command_with_config():
                     target_path,
                     "--config",
                     config_path,
+                    "--yes",  # ユーザー確認をスキップ
                 ],
             )
 
             # 結果を検証
             assert result.exit_code == 0
+            # should_extract_items が 2 回呼ばれることを確認
+            assert mock_analyzer_instance.processor.should_extract_items.call_count == 2
+            # extract_conditions と extract_facts がそれぞれ1回ずつ呼ばれることを確認
+            mock_extract_conditions.assert_called_once()
+            mock_extract_facts.assert_called_once()
+            mock_run_pair_check.assert_called_once_with(
+                mock_analyzer_instance,
+                conditions,
+                facts,
+                source_path,
+                target_path,
+                None,  # output が None であることを期待
+            )
 
 
 def test_check_command_pair_check_logic():
@@ -134,6 +184,7 @@ def test_check_command_pair_check_logic():
         config_path = "test_config.yaml"
         source_path = "test_source.txt"
         target_path = "test_target.txt"
+        output = "test_output.md"  # output変数を定義
 
         # 設定ファイルの内容を書き込む
         config_data = {
@@ -168,7 +219,9 @@ def test_check_command_pair_check_logic():
             "document_analyzer.core.extractor.TextExtractor.extract_facts"
         ) as mock_extract_facts, mock.patch(
             "document_analyzer.cli.commands.check.run_pair_check"
-        ) as mock_run_pair_check:
+        ) as mock_run_pair_check, mock.patch(
+            "document_analyzer.core.extractor.ResponseParser._parse_extraction_response"
+        ) as mock_parse_extraction_response:  # ResponseParserをモック化
 
             # MockAnalyzerのインスタンスとそのprocessor属性、およびprocessorのメソッドをモック
             mock_analyzer_instance = MockAnalyzer.return_value
@@ -196,6 +249,12 @@ def test_check_command_pair_check_logic():
                 )
             ]
             mock_extract_facts.return_value = facts
+
+            # _parse_extraction_response のモック戻り値を設定
+            mock_parse_extraction_response.return_value = [
+                {"text": "条件1", "id": 1},
+                {"text": "条件2", "id": 2},
+            ]
 
             # run_pair_checkのモック戻り値を設定
             mock_run_pair_check.return_value = PairCheckResult(
@@ -237,6 +296,8 @@ def test_check_command_pair_check_logic():
                     target_path,
                     "--config",
                     config_path,
+                    "--output",  # --output オプションを追加
+                    output,  # output変数を渡す
                     "--yes",
                 ],
             )
@@ -253,7 +314,7 @@ def test_check_command_pair_check_logic():
                 facts,
                 source_path,
                 target_path,
-                None,  # output
+                output,  # output
             )
 
 

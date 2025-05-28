@@ -59,3 +59,19 @@ unknown
         self.logger.debug("OtherLLMProcessorで応答を解析します。")
         # BaseLLMProcessorのデフォルト解析を使用
         return super().parse_response(response)
+
+    def call_critic_llm(self, prompt: str) -> Dict[str, Any]:
+        """
+        Critic LLMを呼び出す（プレースホルダー）。
+        """
+        self.logger.info(
+            f"OtherLLMProcessorでCriticプロンプトを処理します (ダミー): {prompt[:100]}..."
+        )
+        # TODO: ここに他のLLMのAPI呼び出し処理を追加
+        # ダミー応答を返す
+        dummy_response_text = """
+        ## 修正提案
+        - 応答形式を修正しました。
+        - 内容の妥当性を確認しました。
+"""
+        return {"text": dummy_response_text, "raw_response": {}}

@@ -18,6 +18,7 @@ from rich.console import Console
 
 from ...core.extractor import TextExtractor  # TextExtractorの型ヒントのためにインポート
 from ...core.pair_check import PairCheckItem, PairCheckItemType
+from ...utils.logging import logger
 
 console = Console()
 
@@ -29,7 +30,7 @@ def extract_or_load_items(
     output_path: Union[str, Path],
     should_extract: bool,  # 抽出するかどうかを明示的に指定
     source_context: Optional[
-        str
+        List[PairCheckItem]
     ] = None,  # ターゲット抽出時に使用するソースのコンテキスト
 ) -> List[PairCheckItem]:
     """
@@ -61,10 +62,13 @@ def extract_or_load_items(
         file_content = Path(file_path).read_text(encoding="utf-8")
 
         if item_type == "conditions":
+            logger.info(f"Extracting {item_type} from file: {file_path}")
             items = extractor.extract_conditions(file_content, str(file_path))
+            logger.info(f"Extracted {len(items)} {item_type} items")
         else:  # item_type == "facts"
             items = extractor.extract_facts(
                 file_content,
+                source_context,  # conditionsを渡す
                 str(file_path),
             )
 

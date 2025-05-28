@@ -192,3 +192,41 @@ class OpenAIProcessor(BaseLLMProcessor):
                 evidence=[],
                 recommendations=[],
             )
+
+    def call_critic_llm(self, prompt: str) -> Dict[str, Any]:
+        """
+        Critic LLMとしてOpenAI APIを呼び出す。
+        通常のLLM呼び出しと同じモデルを使用するが、必要に応じて異なるモデルを設定することも可能。
+
+        Args:
+            prompt: プロンプト
+
+        Returns:
+            OpenAI APIからの応答
+        """
+        self.logger.debug(
+            f"Critic LLMとしてOpenAI APIを呼び出します: {self.model_name}"
+        )
+        try:
+            response = openai.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "あなたはLLMの応答を評価・修正する専門家です。",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+            )
+            result = {
+                "text": response.choices[0].message.content,
+                "raw_response": response,
+            }
+            return result
+        except Exception as e:
+            self.logger.error(
+                f"Critic LLM (OpenAI) 呼び出し中にエラーが発生しました: {str(e)}"
+            )
+            raise

@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-document-analyzer = "document_analyzer.cli:main"
+document_analyzer = "document_analyzer.cli:main"
 
 [tool.setuptools]
 packages = ["document_analyzer"]

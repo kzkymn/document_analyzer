@@ -1,12 +1,13 @@
 import json
 import re
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from ..llm.base import BaseLLMProcessor
 from .pair_check import PairCheckItem, PairCheckItemType
-
-# 必要に応じて他のインポートも追加
+from .prompt_generator import PromptGenerator
+from .response_parser import ResponseParser
+from .structure_analyzer import StructureAnalyzer
 
 
 class ConditionDrivenExtractor:
@@ -15,79 +16,130 @@ class ConditionDrivenExtractor:
     def __init__(self, llm_processor: BaseLLMProcessor, logger):
         self.llm_processor = llm_processor
         self.logger = logger
+        self.prompt_generator = PromptGenerator(
+            self.logger, StructureAnalyzer(self.logger)
+        )
+        self.response_parser = ResponseParser(self.logger)
 
-    def _analyze_condition_for_granularity(self, condition: str) -> str:
+    def extract_facts_from_text(
+        self, text: str, conditions: List[PairCheckItem], source: Optional[str] = None
+    ) -> List[PairCheckItem]:
         """
-        条件を分析し、適切なファクト抽出の粒度を決定するためのプロンプト部分を生成する。
+        与えられた条件に基づいてテキストからファクトを抽出する。
 
         Args:
-            condition: 分析する条件
+            text: ファクトを抽出する対象テキスト
+            conditions: 抽出の基準となる条件のリスト
+            source: 出典（ファイルパスなど）
 
         Returns:
-            ファクト抽出の粒度を指示するプロンプト部分
+            抽出されたファクトのリスト
         """
-        self.logger.info(f"条件「{condition}」の分析を開始します")
+        self.logger.info("条件駆動型ファクト抽出を開始します。")
+        extracted_facts = []
 
-        # 条件を分析するためのプロンプト
-        prompt = f"""
-あなたは文書分析の専門家です。以下の条件を分析し、この条件を検証するために必要なファクト（事実）の適切な抽出粒度を決定してください。
+        # 条件をトークン長に基づいてバッチに分割
+        condition_batches = []
+        current_batch = []
+        current_token_count = len(text) // 4  # テキストのトークン数（概算）
+        token_limit = 8192  # Geminiの出力トークン制限
 
-# 条件
-{condition}
+        for condition in conditions:
+            condition_token_count = len(condition.text) // 4  # 条件のトークン数（概算）
+            if (
+                current_token_count + condition_token_count > token_limit
+                and current_batch
+            ):
+                condition_batches.append(current_batch)
+                current_batch = []
+                current_token_count = len(text) // 4
+            current_batch.append(condition)
+            current_token_count += condition_token_count
 
-# 指示
-1. 上記の条件を分析し、この条件を検証するために必要なファクト（事実）の適切な抽出粒度を決定してください。
-2. 条件の性質（定量的/定性的、具体的/抽象的など）を考慮してください。
-3. 条件に含まれる重要なキーワードや概念を特定してください。
-4. 以下の観点から、ファクト抽出の粒度に関する指示を作成してください：
-   - ファクトの詳細度（詳細/概要）
-   - ファクトの範囲（広範囲/限定的）
-   - 数値や日付などの具体的な情報の重要性
-   - 文脈情報の必要性
-   - 階層構造の必要性
+        if current_batch:
+            condition_batches.append(current_batch)
 
-# 出力形式
-以下の形式で、ファクト抽出の粒度に関する指示を3〜5行程度で出力してください。
-これらの指示は、ファクト抽出のプロンプトに直接組み込まれます。
+        self.logger.info(f"{len(condition_batches)} バッチに分割して処理します。")
 
-```
-- [ファクトの詳細度に関する指示]
-- [ファクトの範囲に関する指示]
-- [具体的な情報の抽出に関する指示]
-- [必要に応じて追加の指示]
-```
-"""
-
-        # LLMを使用して条件を分析
-        response = self.llm_processor.call_llm(prompt)
-        text = response.get("text", "")
-
-        # 出力からファクト抽出の粒度に関する指示を抽出
-        granularity_instructions = ""
-        in_instructions_block = False
-        for line in text.splitlines():
-            line = line.strip()
-            if line == "```" and not in_instructions_block:
-                in_instructions_block = True
-                continue
-            elif line == "```" and in_instructions_block:
-                break
-            elif in_instructions_block and line:
-                granularity_instructions += line + "\n"
-
-        # 指示が抽出できなかった場合はデフォルトの指示を使用
-        if not granularity_instructions.strip():
-            self.logger.warning(
-                "条件の分析から粒度指示を抽出できませんでした。デフォルトの指示を使用します。"
+        for batch_idx, batch in enumerate(condition_batches):
+            self.logger.info(
+                f"バッチ {batch_idx + 1}/{len(condition_batches)} を処理中..."
             )
-            granularity_instructions = """
-- ファクトは、条件の検証に必要な詳細さで抽出してください。
-- 条件に関連する具体的な数値、日付、名称などの情報を優先して抽出してください。
-- 条件の文脈を理解するために必要な背景情報も含めてください。
-"""
 
-        self.logger.info("条件の分析が完了しました")
-        return granularity_instructions.strip()
+            # 条件リストを準備
+            condition_list = [
+                {"condition_id": cond.id, "content": cond.text} for cond in batch
+            ]
+
+            # ファクト抽出プロンプトを生成
+            structured_blocks = (
+                self.prompt_generator.structure_analyzer._analyze_document_structure(
+                    text
+                )
+            )
+            prompt = self.prompt_generator._get_fact_extraction_prompt(
+                text, structured_blocks, condition_list
+            )
+
+            # LLMを呼び出し
+            llm_response = self.llm_processor.call_llm(prompt)
+
+            try:
+                # 応答をパースしてバリデーション
+                facts_dict = self.response_parser._parse_extraction_response(
+                    llm_response
+                )
+            except ValueError as e:
+                self.logger.warning(
+                    f"LLM応答のバリデーションに失敗しました: {e}。再試行します。"
+                )
+                # 再試行のためにLLMを再度呼び出す
+                llm_response = self.llm_processor.call_llm(prompt)
+                try:
+                    facts_dict = self.response_parser._parse_extraction_response(
+                        llm_response
+                    )
+                    self.logger.info("LLM再試行による修正が成功しました。")
+                except ValueError as retry_e:
+                    self.logger.warning(
+                        f"LLM再試行でもバリデーションに失敗しました: {retry_e}。Critic LLMを呼び出します。"
+                    )
+                    # Critic LLMを呼び出して修正を試みる
+                    critic_prompt = self.prompt_generator._get_critic_prompt(
+                        original_prompt=prompt,
+                        llm_response=llm_response.get("text", ""),
+                        error_message=str(retry_e),
+                    )
+                    critic_response = self.llm_processor.call_critic_llm(critic_prompt)
+                    self.logger.info("Critic LLMによる修正応答を受信しました。")
+                    try:
+                        # 修正された応答を再度パースしてバリデーション
+                        facts_dict = self.response_parser._parse_extraction_response(
+                            critic_response
+                        )
+                        self.logger.info("Critic LLMによる修正が成功しました。")
+                    except ValueError as critic_e:
+                        self.logger.error(
+                            f"Critic LLMによる修正後もバリデーションに失敗しました: {critic_e}"
+                        )
+                        self.logger.error(
+                            "このバッチに対するファクト抽出をスキップします。"
+                        )
+                        continue  # このバッチに対する処理をスキップ
+
+            # PairCheckItemのリストに変換
+            for fact in facts_dict:
+                item = PairCheckItem(
+                    text=fact.text,
+                    source=source,
+                    item_type=PairCheckItemType.FACT,
+                    id=fact.id,
+                    condition_ids=fact.condition_ids,
+                )
+                extracted_facts.append(item)
+
+        self.logger.info(f"{len(extracted_facts)}個のファクトを抽出しました。")
+        return extracted_facts
 
     def save_condition_driven_facts_to_file(
         self,

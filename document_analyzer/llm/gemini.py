@@ -212,3 +212,30 @@ class GeminiProcessor(BaseLLMProcessor):
                 evidence=[],
                 recommendations=[],
             )
+
+    def call_critic_llm(self, prompt: str) -> Dict[str, Any]:
+        """
+        Critic LLMとしてGemini APIを呼び出す。
+        通常のLLM呼び出しと同じモデルを使用するが、必要に応じて異なるモデルを設定することも可能。
+
+        Args:
+            prompt: プロンプト
+
+        Returns:
+            Gemini APIからの応答
+        """
+        self.logger.debug(
+            f"Critic LLMとしてGemini APIを呼び出します: {self.model_name}"
+        )
+        try:
+            response = self.model.generate_content(prompt)
+            result = {
+                "text": response.text,
+                "raw_response": response,
+            }
+            return result
+        except Exception as e:
+            self.logger.error(
+                f"Critic LLM (Gemini) 呼び出し中にエラーが発生しました: {str(e)}"
+            )
+        raise

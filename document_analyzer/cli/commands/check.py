@@ -41,6 +41,8 @@ class CheckCommand:
         conditions_output: str = "conditions_output.json",
         facts_output: str = "facts_output.json",
         yes: bool = False,
+        skip_condition_extraction: bool = False,
+        skip_fact_extraction: bool = False,
     ):
         self.config_path = config_path
         self.source_file = source_file
@@ -54,6 +56,8 @@ class CheckCommand:
         self.conditions_output = conditions_output
         self.facts_output = facts_output
         self.yes = yes
+        self.skip_condition_extraction = skip_condition_extraction
+        self.skip_fact_extraction = skip_fact_extraction
         self.console = Console()
         self.analyzer = None
 
@@ -118,9 +122,15 @@ class CheckCommand:
                     # ターゲット抽出時はソースファイル内容または条件を渡す
                     source_context = None
                     if self.extract_only == "both" and conditions:
-                        source_context = "\n".join([c.text for c in conditions])
+                        source_context = conditions  # conditionsをそのまま渡す
                     elif self.extract_only == "both":
-                        source_context = read_text_auto(self.source_file)
+                        # このケースは、conditionsが空の場合なので、source_contextは不要
+                        # または、必要であればread_text_auto(self.source_file)を渡す
+                        # ただし、extract_factsはList[PairCheckItem]を期待するので、
+                        # ここで文字列を渡すのは適切ではない。
+                        # 現状のロジックでは、extract_only="both"の場合、conditionsは必ず抽出されるため、
+                        # このelifブロックは実質的に到達しない。
+                        pass
 
                     facts = extract_or_load_items(
                         extractor,
@@ -135,12 +145,14 @@ class CheckCommand:
                     )
                 sys.exit(0)
 
-            # 通常の分析フロー
+            # 通常の分析フロー (条件とファクトの抽出)
             # ソースファイルの処理 (条件)
-            conditions = []
-            source_content = None  # Initialize source_content here
-
-            if self.use_existing_conditions:
+            if self.skip_condition_extraction:
+                self.console.print(
+                    "[bold blue]--skip-condition-extraction オプションが指定されました。条件の抽出をスキップします。[/bold blue]"
+                )
+                conditions = []
+            elif self.use_existing_conditions:
                 self.console.print(
                     "[bold blue]既存の条件ファイルを読み込みます。[/bold blue]"
                 )
@@ -187,10 +199,12 @@ class CheckCommand:
                     )
 
             # ターゲットファイルの処理 (ファクト)
-            facts = []
-            target_content = None  # Initialize target_content here
-
-            if self.use_existing_facts:
+            if self.skip_fact_extraction:
+                self.console.print(
+                    "[bold blue]--skip-fact-extraction オプションが指定されました。ファクトの抽出をスキップします。[/bold blue]"
+                )
+                facts = []
+            elif self.use_existing_facts:
                 self.console.print(
                     "[bold blue]既存のファクトファイルを読み込みます。[/bold blue]"
                 )
@@ -265,10 +279,20 @@ class CheckCommand:
                         f"ファクト: {self.facts_output} ({len(facts)}個)"
                     )
 
-                if not click.confirm(
-                    "[bold yellow]この抽出結果で分析を実行しますか？[/bold yellow]"
-                ):
-                    self.console.print("[bold red]分析を中止しました。[/bold red]")
+                self.console.print(
+                    "[bold yellow]確認ログ: 条件とファクトの抽出結果を確認しています。[/bold yellow]"
+                )
+                if not click.confirm("この抽出結果で分析を実行しますか？"):
+                    self.console.print(
+                        "[bold red]分析を中止しました。ユーザーが確認を拒否しました。[/bold red]"
+                    )
+                    logger.info(
+                        "ユーザーが抽出結果の確認を拒否しました。条件数: %d, ファクト数: %d, ソースファイル: %s, ターゲットファイル: %s",
+                        len(conditions),
+                        len(facts),
+                        self.source_file,
+                        self.target_file,
+                    )
                     sys.exit(0)
 
                 # 確認後にファイルが編集されている可能性を考慮し、再度読み込みは行わない
@@ -433,7 +457,7 @@ class CheckCommand:
     help="既存の条件ファイルを使用し、条件の抽出処理をスキップします",
 )
 @click.option(
-    "--use-existing-facts",
+    "--use_existing_facts",
     is_flag=True,
     help="既存のファクトファイルを使用し、ファクトの抽出処理をスキップします",
 )
@@ -455,6 +479,16 @@ class CheckCommand:
     is_flag=True,
     help="抽出結果の確認をスキップし、常に了承する",
 )
+@click.option(
+    "--skip-condition-extraction",
+    is_flag=True,
+    help="条件の抽出処理を強制的にスキップします",
+)
+@click.option(
+    "--skip-fact-extraction",
+    is_flag=True,
+    help="ファクトの抽出処理を強制的にスキップします",
+)
 def check_command(
     config_path: str,
     source_file: str,
@@ -468,6 +502,8 @@ def check_command(
     conditions_output: str = "conditions_output.json",
     facts_output: str = "facts_output.json",
     yes: bool = False,
+    skip_condition_extraction: bool = False,
+    skip_fact_extraction: bool = False,
 ):
     """
     文書分析を実行する。
@@ -489,5 +525,7 @@ def check_command(
         conditions_output,
         facts_output,
         yes,
+        skip_condition_extraction,
+        skip_fact_extraction,
     )
     command.run()

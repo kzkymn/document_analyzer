@@ -7,8 +7,92 @@ from typing import Dict, List
 class StructureAnalyzer:
     """文書構造解析クラス"""
 
-    def __init__(self, logger):
+    def __init__(self, logger, chunk_size: int = 4000, chunk_overlap: int = 200):
         self.logger = logger
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+    def should_chunk_text(self, text: str) -> bool:
+        """
+        テキストがチャンク分割を必要とするほど長いかどうかを判断する。
+
+        Args:
+            text: 判断するテキスト
+
+        Returns:
+            bool: チャンク分割が必要な場合はTrue、そうでない場合はFalse
+        """
+        # ここでは単純に文字数で判断するが、より複雑なロジックも可能
+        return len(text) > self.chunk_size
+
+    def chunk_text(self, text: str) -> List[str]:
+        """
+        テキストを文書構造（見出し、段落、箇条書き）を考慮してチャンクに分割する。
+
+        Args:
+            text: 分割するテキスト
+
+        Returns:
+            List[str]: テキストチャンクのリスト
+        """
+        self.logger.info(
+            f"文書構造を考慮してテキストをチャンクに分割します (チャンクサイズ: {self.chunk_size}, オーバーラップ: {self.chunk_overlap})"
+        )
+        structured_blocks = self._analyze_document_structure(text)
+        chunks = []
+        current_chunk_lines = []
+        current_chunk_length = 0
+
+        for block in structured_blocks:
+            # block["text"]はリストの場合と文字列の場合があるため、常にリストとして扱う
+            block_lines = (
+                block["text"] if isinstance(block["text"], list) else [block["text"]]
+            )
+            # 各行の長さに改行文字の分も加算して正確な長さを計算
+            block_content_length = (
+                sum(len(line) + 1 for line in block_lines) if block_lines else 0
+            )
+
+            # 現在のチャンクにブロックを追加するとchunk_sizeを超える場合
+            # かつ、現在のチャンクが空でない場合（最初のブロックでいきなり超えるのを避ける）
+            if (
+                current_chunk_length + block_content_length > self.chunk_size
+                and current_chunk_lines
+            ):
+                # 現在のチャンクを確定
+                chunks.append("\n".join(current_chunk_lines))
+                self.logger.debug(f"チャンク確定 (長さ: {current_chunk_length})")
+
+                # オーバーラップ処理
+                # 前のチャンクの末尾を新しいチャンクの先頭に含める
+                overlap_lines = []
+                overlap_length = 0
+                # 後ろからオーバーラップサイズ分だけ行を追加
+                # 行の順序を維持するため、逆順で追加し、最後に反転させる
+                temp_overlap_lines = []
+                for line in reversed(current_chunk_lines):
+                    line_length = len(line) + 1  # +1 for newline
+                    if overlap_length + line_length <= self.chunk_overlap:
+                        temp_overlap_lines.append(line)
+                        overlap_length += line_length
+                    else:
+                        break
+                overlap_lines = list(reversed(temp_overlap_lines))  # 正しい順序に戻す
+
+                current_chunk_lines = overlap_lines
+                current_chunk_length = overlap_length
+                self.logger.debug(f"オーバーラップ追加 (長さ: {current_chunk_length})")
+
+            # ブロックを現在のチャンクに追加
+            current_chunk_lines.extend(block_lines)
+            current_chunk_length += block_content_length
+
+        # 最後のチャンクを追加
+        if current_chunk_lines:
+            chunks.append("\n".join(current_chunk_lines))
+
+        self.logger.info(f"{len(chunks)}個のチャンクに分割しました。")
+        return chunks
 
     def _analyze_document_structure(self, text: str) -> List[Dict]:
         """

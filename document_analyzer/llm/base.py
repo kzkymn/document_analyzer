@@ -285,3 +285,17 @@ class BaseLLMProcessor(LLMProcessor):
         """
         # サブクラスで実装する必要がある
         raise NotImplementedError("サブクラスで実装する必要があります")
+
+    @abc.abstractmethod
+    def call_critic_llm(self, prompt: str) -> Dict[str, Any]:
+        """
+        Critic LLMを呼び出す。
+        サブクラスで実装する必要がある。
+
+        Args:
+            prompt: プロンプト
+
+        Returns:
+            LLMからの応答
+        """
+        pass

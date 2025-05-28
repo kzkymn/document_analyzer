@@ -60,6 +60,23 @@ document-analyzer check --source-file "参照文書のパス" --target-file "対
 document-analyzer check --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス" --verbose
 ```
 
+###### オプション一覧
+
+- `--config`, `-c` (必須): 設定ファイルのパス。
+- `--source-file`, `-s` (必須): ソースファイル（比較元）のパス。
+- `--target-file`, `-t` (必須): チェック対象ファイルのパス。
+- `--output`, `-o`: レポート出力先パス。指定しない場合は標準出力。
+- `--llm`, `-m`: 使用するLLM。デフォルトは設定ファイルの値。
+- `--verbose`, `-v`: 詳細なログを出力します。
+- `--extract-only`: 抽出のみを行う場合、どの項目を抽出するかを指定します (`conditions`, `facts`, `both`)。
+- `--use-existing-conditions`: 既存の条件ファイルを使用し、条件の抽出処理をスキップします。
+- `--use-existing-facts`: 既存のファクトファイルを使用し、ファクトの抽出処理をスキップします。
+- `--conditions-output`: 抽出したチェック条件の出力先パス。デフォルトは `conditions_output.json`。
+- `--facts-output`: 抽出したファクトの出力先パス。デフォルトは `facts_output.json`。
+- `--yes`, `-y`: 抽出結果の確認をスキップし、常に了承します。
+- `--skip-condition-extraction`: 条件の抽出処理を強制的にスキップします。
+- `--skip-fact-extraction`: ファクトの抽出処理を強制的にスキップします。
+
 ##### 自律的な分析フロー
 
 `--extract-only`, `--use-existing-conditions`, `--use-existing-facts` オプションを指定しない場合、ツールはLLMを使用してソースファイルとターゲットファイルの内容から、条件やファクトの抽出が必要かどうかを自律的に判断します。
@@ -124,6 +141,12 @@ document-analyzer serve --host 127.0.0.1 --port 8000
 # 開発時はファイル変更時に自動リロードする場合
 document-analyzer serve --host 127.0.0.1 --port 8000 --reload
 ```
+
+###### オプション一覧
+
+- `--host`: ホストアドレス。デフォルトは `127.0.0.1`。
+- `--port`, `-p`: ポート番号。デフォルトは `8000`。
+- `--reload`: ファイル変更時に自動リロードを有効にします。
 
 APIエンドポイント：
 

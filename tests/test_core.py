@@ -245,6 +245,9 @@ unknown
                     recommendations=[],
                 )
 
+            def call_critic_llm(self, prompt):
+                return {"text": "Mock critic response"}
+
         # 登録前の利用可能なプロセッサー数を取得
         processors_before = len(TextComparisonAnalyzer.get_available_processors())
 
@@ -272,73 +275,323 @@ class TestTextExtractor(unittest.TestCase):
         # モックのLLMプロセッサーを作成
         self.mock_llm_processor = mock.Mock()
         self.mock_llm_processor.logger = mock.Mock()  # logger属性を追加
-        # プロンプト取得をモックし、単純なテンプレートを返す
-        self.get_prompt_patcher = mock.patch(
-            "document_analyzer.utils.config.config.get_prompt_content",
-            return_value="テキスト:{text}\n構造:{structure_summary}",
-        )
-        self.get_prompt_patcher.start()
+        self.mock_llm_processor.call_critic_llm = (
+            mock.Mock()
+        )  # Critic LLMのモックを追加
 
-        self.extractor = TextExtractor(self.mock_llm_processor)
+        # ResponseParserのモック
+        self.mock_response_parser = mock.Mock()
+        self.mock_response_parser._post_process_extracted_items.side_effect = (
+            lambda x: x
+        )  # 後処理はそのまま返す
+
+        # StructureAnalyzerのモック
+        self.mock_structure_analyzer = mock.Mock()
+        self.mock_structure_analyzer._analyze_document_structure.return_value = [
+            {"text": "test", "structure": {"type": "paragraph"}}
+        ]
+        self.mock_structure_analyzer.should_chunk_text.return_value = False
+        self.mock_structure_analyzer.chunk_text.return_value = ["chunk1", "chunk2"]
+
+        # PromptGeneratorのモック
+        self.mock_prompt_generator = mock.Mock()
+        self.mock_prompt_generator._get_condition_extraction_prompt.return_value = (
+            "条件抽出プロンプト"
+        )
+        self.mock_prompt_generator._get_fact_extraction_prompt.return_value = (
+            "ファクト抽出プロンプト"
+        )
+        self.mock_prompt_generator._get_critic_prompt.return_value = "Criticプロンプト"
+        self.mock_prompt_generator.structure_analyzer = (
+            self.mock_structure_analyzer
+        )  # PromptGeneratorがStructureAnalyzerを持つように設定
+
+        # TextExtractorの初期化時にモックを注入
+        with mock.patch(
+            "document_analyzer.core.extractor.ResponseParser",
+            return_value=self.mock_response_parser,
+        ), mock.patch(
+            "document_analyzer.core.extractor.StructureAnalyzer",
+            return_value=self.mock_structure_analyzer,
+        ), mock.patch(
+            "document_analyzer.core.extractor.PromptGenerator",
+            return_value=self.mock_prompt_generator,
+        ), mock.patch(
+            "document_analyzer.core.extractor.ConditionDrivenExtractor"
+        ) as MockConditionDrivenExtractor:
+
+            # ConditionDrivenExtractorのモックインスタンスを作成し、extract_facts_from_textをモック
+            self.mock_condition_driven_extractor_instance = (
+                MockConditionDrivenExtractor(
+                    self.mock_llm_processor, self.mock_llm_processor.logger
+                ).return_value
+            )
+            self.mock_condition_driven_extractor_instance.extract_facts_from_text.return_value = [
+                PairCheckItem(id=1, text="ファクト1", item_type=PairCheckItemType.FACT)
+            ]
+
+            self.extractor = TextExtractor(self.mock_llm_processor)
+            # TextExtractorが内部で生成するインスタンスをモックに置き換える
+            self.extractor.response_parser = self.mock_response_parser
+            self.extractor.structure_analyzer = self.mock_structure_analyzer
+            self.extractor.prompt_generator = self.mock_prompt_generator
+            self.extractor.condition_driven_extractor = (
+                self.mock_condition_driven_extractor_instance
+            )
 
     def tearDown(self):
         """テスト後のクリーンアップ"""
-        # get_prompt_patcher を停止
-        self.get_prompt_patcher.stop()
+        pass  # モックの停止は不要になった
 
-    def test_extract_conditions(self):
-        """チェック条件抽出のテスト"""
-        test_text = """
-        以下の要件を満たす必要があります。
-        - レポートは週次で提出すること
-        - プロジェクトの進捗状況を詳細に記載すること
-        事実：進捗は順調です。
-        """
-        mock_response = {
-            "text": "- レポートは週次で提出すること\n- プロジェクトの進捗状況を詳細に記載すること",
-            # プロンプトテンプレートが期待するキーを追加
-            "structure_summary": "テスト構造の要約",
+    def test_extract_conditions_short_text(self):
+        """短文からのチェック条件抽出のテスト"""
+        test_text = "これは短いテキストです。"
+        self.mock_llm_processor.call_llm.return_value = {
+            "text": '```json\n[{"id": 1, "text": "条件1", "item_type": "condition"}]\n```'
         }
-        self.mock_llm_processor.call_llm.return_value = mock_response
+        self.mock_response_parser._parse_extraction_response.return_value = [
+            PairCheckItem(id=1, text="条件1", item_type=PairCheckItemType.CONDITION)
+        ]
+        self.mock_structure_analyzer.should_chunk_text.return_value = False
+
+        conditions = self.extractor.extract_conditions(test_text, "test_source.txt")
+
+        self.assertEqual(len(conditions), 1)
+        self.assertEqual(conditions[0].text, "条件1")
+        self.mock_llm_processor.call_llm.assert_called_once()
+        self.mock_structure_analyzer.should_chunk_text.assert_called_once_with(
+            test_text
+        )
+        self.mock_response_parser._parse_extraction_response.assert_called_once()
+        self.mock_response_parser._post_process_extracted_items.assert_called_once()
+
+    def test_extract_conditions_long_text_with_chunking(self):
+        """長文からのチェック条件抽出（チャンク分割あり）のテスト"""
+        test_text = "a" * 5000  # チャンクサイズより長いテキスト
+        self.mock_structure_analyzer.should_chunk_text.return_value = True
+        self.mock_structure_analyzer.chunk_text.return_value = ["chunk1", "chunk2"]
+        self.mock_llm_processor.call_llm.side_effect = [
+            {
+                "text": '```json\n[{"id": 1, "text": "条件A", "item_type": "condition"}]\n```'
+            },
+            {
+                "text": '```json\n[{"id": 2, "text": "条件B", "item_type": "condition"}]\n```'
+            },
+        ]
+        self.mock_response_parser._parse_extraction_response.side_effect = [
+            [PairCheckItem(id=1, text="条件A", item_type=PairCheckItemType.CONDITION)],
+            [PairCheckItem(id=2, text="条件B", item_type=PairCheckItemType.CONDITION)],
+        ]
 
         conditions = self.extractor.extract_conditions(test_text, "test_source.txt")
 
         self.assertEqual(len(conditions), 2)
-        self.assertEqual(conditions[0].text, "レポートは週次で提出すること")
-        self.assertEqual(conditions[0].source, "test_source.txt")
-        self.assertEqual(conditions[0].item_type, PairCheckItemType.CONDITION)
-        self.assertEqual(
-            conditions[1].text, "プロジェクトの進捗状況を詳細に記載すること"
+        self.assertEqual(conditions[0].text, "条件A")
+        self.assertEqual(conditions[1].text, "条件B")
+        self.assertEqual(self.mock_llm_processor.call_llm.call_count, 2)
+        self.mock_structure_analyzer.should_chunk_text.assert_called_once_with(
+            test_text
         )
-        self.assertEqual(conditions[1].source, "test_source.txt")
-        self.assertEqual(conditions[1].item_type, PairCheckItemType.CONDITION)
-        self.mock_llm_processor.call_llm.assert_called_once()
+        self.mock_structure_analyzer.chunk_text.assert_called_once_with(test_text)
+        self.assertEqual(
+            self.mock_response_parser._parse_extraction_response.call_count, 2
+        )
+        self.mock_response_parser._post_process_extracted_items.assert_called_once()
 
-    def test_extract_facts(self):
-        """ファクト抽出のテスト"""
-        test_text = """
-        今週の進捗は以下の通りです。
-        - 設計フェーズが完了しました
-        - 実装フェーズを開始しました
-        要件：設計を完了すること。
-        """
-        mock_response = {
-            "text": "- 設計フェーズが完了しました\n- 実装フェーズを開始しました",
-            # プロンプトテンプレートが期待するキーを追加
-            "structure_summary": "テスト構造の要約",
-        }
-        self.mock_llm_processor.call_llm.return_value = mock_response
+    def test_extract_facts_short_text(self):
+        """短文からのファクト抽出のテスト"""
+        test_text = "これは短いテキストです。"
+        self.mock_structure_analyzer.should_chunk_text.return_value = False
 
-        facts = self.extractor.extract_facts(test_text, "test_target.txt")
+        # ConditionDrivenExtractorのextract_facts_from_textが呼び出されることを確認
+        # ダミーのconditionsリストを渡す
+        dummy_conditions = [
+            PairCheckItem(
+                id=999, text="ダミー条件", item_type=PairCheckItemType.CONDITION
+            )
+        ]
+        facts = self.extractor.extract_facts(
+            test_text, dummy_conditions, "test_target.txt"
+        )
+
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0].text, "ファクト1")
+        self.mock_condition_driven_extractor_instance.extract_facts_from_text.assert_called_once_with(
+            test_text, dummy_conditions, "test_target.txt"
+        )
+        self.mock_structure_analyzer.should_chunk_text.assert_called_once_with(
+            test_text
+        )
+        self.mock_response_parser._post_process_extracted_items.assert_called_once()
+
+    def test_extract_facts_long_text_with_chunking(self):
+        """長文からのファクト抽出（チャンク分割あり）のテスト"""
+        test_text = "b" * 5000  # チャンクサイズより長いテキスト
+        self.mock_structure_analyzer.should_chunk_text.return_value = True
+        self.mock_structure_analyzer.chunk_text.return_value = ["chunk1", "chunk2"]
+
+        # ConditionDrivenExtractorのextract_facts_from_textがチャンクごとに呼び出されることを確認
+        self.mock_condition_driven_extractor_instance.extract_facts_from_text.side_effect = [
+            [PairCheckItem(id=1, text="ファクトX", item_type=PairCheckItemType.FACT)],
+            [PairCheckItem(id=2, text="ファクトY", item_type=PairCheckItemType.FACT)],
+        ]
+
+        # ダミーのconditionsリストを渡す
+        dummy_conditions = [
+            PairCheckItem(
+                id=999, text="ダミー条件", item_type=PairCheckItemType.CONDITION
+            )
+        ]
+        facts = self.extractor.extract_facts(
+            test_text, dummy_conditions, "test_target.txt"
+        )
 
         self.assertEqual(len(facts), 2)
-        self.assertEqual(facts[0].text, "設計フェーズが完了しました")
-        self.assertEqual(facts[0].source, "test_target.txt")
-        self.assertEqual(facts[0].item_type, PairCheckItemType.FACT)
-        self.assertEqual(facts[1].text, "実装フェーズを開始しました")
-        self.assertEqual(facts[1].source, "test_target.txt")
-        self.assertEqual(facts[1].item_type, PairCheckItemType.FACT)
-        self.mock_llm_processor.call_llm.assert_called_once()
+        self.assertEqual(facts[0].text, "ファクトX")
+        self.assertEqual(facts[1].text, "ファクトY")
+        self.assertEqual(
+            self.mock_condition_driven_extractor_instance.extract_facts_from_text.call_count,
+            2,
+        )
+        self.mock_condition_driven_extractor_instance.extract_facts_from_text.assert_has_calls(
+            [
+                mock.call("chunk1", dummy_conditions, "test_target.txt"),
+                mock.call("chunk2", dummy_conditions, "test_target.txt"),
+            ]
+        )
+        self.mock_structure_analyzer.should_chunk_text.assert_called_once_with(
+            test_text
+        )
+        self.mock_structure_analyzer.chunk_text.assert_called_once_with(test_text)
+        self.mock_response_parser._post_process_extracted_items.assert_called_once()
+
+
+from document_analyzer.core.condition_driven import ConditionDrivenExtractor  # 追加
+
+
+class TestConditionDrivenExtractor(unittest.TestCase):
+    """ConditionDrivenExtractorのテスト"""
+
+    def setUp(self):
+        self.mock_llm_processor = mock.Mock()
+        self.mock_llm_processor.logger = mock.Mock()
+        self.mock_llm_processor.call_llm.return_value = {
+            "text": '```json\n[{"id": 1, "text": "抽出されたファクト", "item_type": "fact"}]\n```'
+        }
+        self.mock_llm_processor.call_critic_llm.return_value = {
+            "text": '```json\n[{"id": 1, "text": "修正されたファクト", "item_type": "fact"}]\n```'
+        }
+
+        # PromptGeneratorとResponseParserのモック
+        self.mock_prompt_generator = mock.Mock()
+        self.mock_prompt_generator._get_fact_extraction_prompt.return_value = (
+            "ファクト抽出プロンプト"
+        )
+        self.mock_prompt_generator._get_critic_prompt.return_value = "Criticプロンプト"
+        self.mock_prompt_generator.structure_analyzer = mock.Mock()
+        self.mock_prompt_generator.structure_analyzer._analyze_document_structure.return_value = [
+            {"text": "test", "structure": {"type": "paragraph"}}
+        ]
+
+        self.mock_response_parser = mock.Mock()
+        # _parse_extraction_responseの戻り値をPairCheckItemのリストに修正
+        self.mock_response_parser._parse_extraction_response.side_effect = lambda x: [
+            PairCheckItem(
+                id=1, text="抽出されたファクト", item_type=PairCheckItemType.FACT
+            )
+        ]
+        self.mock_response_parser._post_process_extracted_items.side_effect = (
+            lambda x: x
+        )
+
+        # ConditionDrivenExtractorを直接モック化しない
+        self.extractor = ConditionDrivenExtractor(
+            self.mock_llm_processor, self.mock_llm_processor.logger
+        )
+        # 内部で生成されるPromptGeneratorとResponseParserのインスタンスをモックに置き換える
+        self.extractor.prompt_generator = self.mock_prompt_generator
+        self.extractor.response_parser = self.mock_response_parser
+
+    def test_extract_facts_from_text_success(self):
+        """条件駆動型ファクト抽出の成功テスト"""
+        test_text = "これはテストテキストです。"
+        conditions = [
+            PairCheckItem(
+                id=1, text="テスト条件", item_type=PairCheckItemType.CONDITION
+            )
+        ]
+
+        facts = self.extractor.extract_facts_from_text(
+            test_text, conditions, "test_source.txt"
+        )
+
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0].text, "抽出されたファクト")
+        self.assertEqual(self.mock_llm_processor.call_llm.call_count, 1)
+        self.mock_prompt_generator._get_fact_extraction_prompt.assert_called_once()
+        self.mock_response_parser._parse_extraction_response.assert_called_once()
+        self.mock_llm_processor.call_critic_llm.assert_not_called()
+
+    def test_extract_facts_from_text_with_critic_retry(self):
+        """条件駆動型ファクト抽出（Critic LLMによるリトライ）のテスト"""
+        test_text = "これはテストテキストです。"
+        conditions = [
+            PairCheckItem(
+                id=1, text="テスト条件", item_type=PairCheckItemType.CONDITION
+            )
+        ]
+
+        # 最初のパースでエラー、再試行もエラー、Critic LLMで成功するよう設定
+        self.mock_response_parser._parse_extraction_response.side_effect = [
+            ValueError("JSON解析エラー (初回)"),
+            ValueError("JSON解析エラー (再試行)"),
+            [
+                PairCheckItem(
+                    id=1, text="修正されたファクト", item_type=PairCheckItemType.FACT
+                )
+            ],
+        ]
+
+        facts = self.extractor.extract_facts_from_text(
+            test_text, conditions, "test_source.txt"
+        )
+
+        self.assertEqual(len(facts), 1)
+        self.assertEqual(facts[0].text, "修正されたファクト")
+        self.assertEqual(
+            self.mock_llm_processor.call_llm.call_count, 2
+        )  # 最初のLLM呼び出しと再試行
+        self.mock_llm_processor.call_critic_llm.assert_called_once()  # Critic LLM呼び出し
+        self.assertEqual(
+            self.mock_response_parser._parse_extraction_response.call_count, 3
+        )  # 最初のパース、再試行のパース、Critic LLMのパース
+
+    def test_extract_facts_from_text_critic_failure(self):
+        """条件駆動型ファクト抽出（Critic LLMも失敗）のテスト"""
+        test_text = "これはテストテキストです。"
+        conditions = [
+            PairCheckItem(
+                id=1, text="テスト条件", item_type=PairCheckItemType.CONDITION
+            )
+        ]
+
+        # 最初のパースでエラー、再試行もエラー、Critic LLMもエラー
+        self.mock_response_parser._parse_extraction_response.side_effect = [
+            ValueError("JSON解析エラー (初回)"),
+            ValueError("JSON解析エラー (再試行)"),
+            ValueError("Critic LLMもJSON解析エラー"),
+        ]
+
+        facts = self.extractor.extract_facts_from_text(
+            test_text, conditions, "test_source.txt"
+        )
+
+        self.assertEqual(len(facts), 0)  # ファクトが抽出されないことを確認
+        self.assertEqual(self.mock_llm_processor.call_llm.call_count, 2)
+        self.mock_llm_processor.call_critic_llm.assert_called_once()
+        self.assertEqual(
+            self.mock_response_parser._parse_extraction_response.call_count, 3
+        )
 
 
 class TestPairChecker(unittest.TestCase):

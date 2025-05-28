@@ -27,6 +27,9 @@ class PairCheckItem(BaseModel):
     parent_id: Optional[int] = None  # 親項目のID（階層構造を表現するため）
     id: Optional[int] = None  # 項目のID（階層構造を表現するため）
     children: Optional[List["PairCheckItem"]] = None  # 子項目のリスト
+    condition_ids: Optional[List[int]] = (
+        None  # 関連する条件のIDリスト (ファクトの場合に設定)
+    )
 
 
 class PairResult(BaseModel):

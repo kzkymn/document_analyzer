@@ -64,7 +64,7 @@ class TextComparisonAnalyzer:
         Returns:
             分析結果
         """
-        self.logger.info(f"分析開始: {target_file}")
+        self.logger.info(f"分析開始: {reference_text} と {target_file}")
 
         # 参照テキストがファイルパスの場合は読み込む
         if isinstance(reference_text, (str, Path)) and Path(reference_text).is_file():
@@ -85,7 +85,7 @@ class TextComparisonAnalyzer:
             )
             self.report_generator.save_report(report, output_path)
 
-        self.logger.info(f"分析完了: {target_file}")
+        self.logger.info(f"分析完了: {reference_text} と {target_file}")
         return result
 
     def analyze_pairs(
