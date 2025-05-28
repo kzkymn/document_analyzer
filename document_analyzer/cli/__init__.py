@@ -7,11 +7,13 @@ import click
 from document_analyzer.cli.commands.check import check_command
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option()
-def cli():
+@click.pass_context
+def cli(ctx):
     """文書分析ツール"""
-    pass
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(check_command)
 
 
 # コマンドを登録

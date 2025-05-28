@@ -10,7 +10,7 @@
 - 分析結果とその根拠を詳細に出力
 - 複数のLLM（まずはGemini）をサポート
 - 様々なファイル形式（テキスト、PDF、Office文書、画像）に対応
-- CLIとAPI（FastAPI）の両方のインターフェースを提供
+- CLIインターフェースを提供
 
 ## インストール
 
@@ -51,13 +51,17 @@ cp .env.example .env
 
 ```bash
 # 基本的な使用方法（設定ファイルは必須）
+document-analyzer --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス"
+
+# `check` コマンドはデフォルトで実行されます。
+# 明示的に `check` を指定することも可能です。
 document-analyzer check --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス"
 
 # 出力形式を指定
-document-analyzer check --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス" --output "出力ファイルのパス"
+document-analyzer --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス" --output "出力ファイルのパス"
 
 # 詳細ログを出力
-document-analyzer check --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス" --verbose
+document-analyzer --source-file "参照文書のパス" --target-file "対象文書のパス" --config "設定ファイルのパス" --verbose
 ```
 
 ###### オプション一覧
@@ -99,13 +103,13 @@ LLMの判断結果に基づき、以下のいずれかの分析処理が自動�
 
 ```bash
 # 条件のみを抽出
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only conditions
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only conditions
 
 # ファクトのみを抽出
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only facts
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only facts
 
 # 条件とファクトの両方を抽出
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only both
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only both
 ```
 
 ##### 既存の条件やファクトファイルを使用する
@@ -114,10 +118,10 @@ document-analyzer check --source-file "条件ファイルのパス" --target-fil
 
 ```bash
 # 既存の条件ファイルを使用して分析を実行
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-conditions
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-conditions
 
 # 既存のファクトファイルを使用して分析を実行
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
 ```
 
 ##### 条件やファクトファイルを編集した後の再度チェック
@@ -126,52 +130,12 @@ document-analyzer check --source-file "条件ファイルのパス" --target-fil
 
 ```bash
 # 条件ファイルを編集した後に再度チェックを実行
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-conditions
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-conditions
 
 # ファクトファイルを編集した後に再度チェックを実行
-document-analyzer check --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
+document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
 ```
 
-### API
-
-APIサーバーを起動：
-
-```bash
-document-analyzer serve --host 127.0.0.1 --port 8000
-# 開発時はファイル変更時に自動リロードする場合
-document-analyzer serve --host 127.0.0.1 --port 8000 --reload
-```
-
-###### オプション一覧
-
-- `--host`: ホストアドレス。デフォルトは `127.0.0.1`。
-- `--port`, `-p`: ポート番号。デフォルトは `8000`。
-- `--reload`: ファイル変更時に自動リロードを有効にします。
-
-APIエンドポイント：
-
-- `POST /api/check`: 文書分析を実行
-  - **注意**: 実際の実装はJSON形式ではなくマルチパートフォームデータを使用します
-  - リクエストパラメータ:
-    - `source_text`: 参照文書の内容（Form）
-    - `target_file`: 対象文書ファイル（UploadFile）
-    - `llm`: 使用するLLM（Form、オプション）
-
-- `POST /api/check/report`: 文書分析を実行し、Markdownレポートを返す
-  - リクエストパラメータ:
-    - `source_text`: 参照文書の内容（Form）
-    - `target_file`: 対象文書ファイル（UploadFile）
-    - `llm`: 使用するLLM（Form、オプション）
-  - レスポンス: Markdownファイル
-
-- `GET /api/processors`: 利用可能なLLMプロセッサーの一覧を取得
-  - レスポンス例:
-        ```json
-        {
-          "processors": ["gemini"],
-          "default": "gemini"
-        }
-        ```
 
 ## 設定
 
@@ -358,14 +322,14 @@ CLIの `check` コマンドは、分析結果に応じて以下の終了コー�
 - 例：
 
     ```text
-    document-analyzer check -s <参照文書のパス> -t <対象文書のパス> -c <設定ファイルのパス>
+    document-analyzer -s <参照文書のパス> -t <対象文書のパス> -c <設定ファイルのパス>
     ```
-
-- 具体例:
-
-    ```text
-    document-analyzer check -s sample_input/weekly_report_check/writing_guidelines.txt -t sample_input/weekly_report_check/compliant_report.txt -c sample_input/weekly_report_check/config.yaml
-    ```
+    
+    - 具体例:
+    
+        ```text
+        document-analyzer -s sample_input/weekly_report_check/writing_guidelines.txt -t sample_input/weekly_report_check/compliant_report.txt -c sample_input/weekly_report_check/config.yaml
+        ```
 
 ### プロンプトテンプレートが見つからない場合
 
