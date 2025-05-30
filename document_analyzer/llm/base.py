@@ -15,14 +15,16 @@ from ..utils.logging import logger
 class BaseLLMProcessor(LLMProcessor):
     """基本LLMプロセッサークラス"""
 
-    def __init__(self, model_config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config, model_config: Optional[Dict[str, Any]] = None):
         """
         初期化
 
         Args:
+            config: 設定オブジェクト
             model_config: モデル設定。指定されない場合は設定ファイルから取得。
         """
         super().__init__()
+        self.config = config
         self.model_config = model_config or {}
         self.logger = logger
 

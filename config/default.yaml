@@ -49,3 +49,4 @@ prompts:
   condition_extraction: "config/prompts/condition_extraction_prompt.txt"
   fact_extraction: "config/prompts/fact_extraction_prompt.txt"
   critic_prompt: "config/prompts/critic_prompt.txt"
+  system_prompt: "config/prompts/system_prompt.txt"

@@ -58,7 +58,7 @@ class CheckCommand:
         self.yes = yes
         self.skip_condition_extraction = skip_condition_extraction
         self.skip_fact_extraction = skip_fact_extraction
-        self.console = Console()
+        self.console = Console(force_terminal=True)
         self.analyzer = None
 
     def validate_options(self) -> bool:

@@ -25,7 +25,7 @@ class OpenAIProcessor(BaseLLMProcessor):
         Args:
             model_config: モデル設定。指定されない場合は設定ファイルから取得。
         """
-        super().__init__(model_config)
+        super().__init__(config, model_config)
 
         # OpenAI APIキーを設定
         api_key = config.get_openai_api_key()
@@ -94,7 +94,10 @@ class OpenAIProcessor(BaseLLMProcessor):
             response = openai.chat.completions.create(
                 model=self.model_name,
                 messages=[
-                    {"role": "system", "content": "あなたは文書レビューの専門家です。"},
+                    {
+                        "role": "system",
+                        "content": self.config.get_prompt_content("system_prompt"),
+                    },
                     {"role": "user", "content": prompt},
                 ],
                 temperature=self.temperature,
@@ -214,6 +217,8 @@ class OpenAIProcessor(BaseLLMProcessor):
                     {
                         "role": "system",
                         "content": "あなたはLLMの応答を評価・修正する専門家です。",
+                        "role": "system",
+                        "content": self.config.get_prompt_content("critic_prompt"),
                     },
                     {"role": "user", "content": prompt},
                 ],
