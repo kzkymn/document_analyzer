@@ -9,7 +9,7 @@
 - 2つの文書間の関連性や適合性を分析
 - 分析結果とその根拠を詳細に出力
 - 複数のLLM（まずはGemini）をサポート
-- 様々なファイル形式（テキスト、PDF、Office文書、画像）に対応
+- 主にテキストファイルに対応（PDF、Office文書、画像は将来の拡張として計画中）
 - CLIインターフェースを提供
 
 ## インストール
@@ -72,7 +72,7 @@ document-analyzer --source-file "参照文書のパス" --target-file "対象文
 - `--output`, `-o`: レポート出力先パス。指定しない場合は標準出力。
 - `--llm`, `-m`: 使用するLLM。デフォルトは設定ファイルの値。
 - `--verbose`, `-v`: 詳細なログを出力します。
-- `--extract-only`: 抽出のみを行う場合、どの項目を抽出するかを指定します (`conditions`, `facts`, `both`)。
+- `--extract-only`: 抽出のみを行う場合、どの項目を抽出するかを指定します (`conditions`, `facts`, `both`)。例: `document-analyzer check --extract-only conditions`
 - `--use-existing-conditions`: 既存の条件ファイルを使用し、条件の抽出処理をスキップします。
 - `--use-existing-facts`: 既存のファクトファイルを使用し、ファクトの抽出処理をスキップします。
 - `--conditions-output`: 抽出したチェック条件の出力先パス。デフォルトは `conditions_output.json`。
@@ -97,20 +97,6 @@ LLMの判断結果に基づき、以下のいずれかの分析処理が自動�
 
 この自律的な判断により、利用者は抽出に関する詳細なオプションを指定することなく、ファイルパスを指定するだけで適切な分析を実行できます。
 
-##### 条件やファクトの抽出のみを行う
-
-`--extract-only` オプションを使用すると、条件やファクトの抽出のみを行い、チェックを実行せずに終了できます。
-
-```bash
-# 条件のみを抽出
-document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only conditions
-
-# ファクトのみを抽出
-document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only facts
-
-# 条件とファクトの両方を抽出
-document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --extract-only both
-```
 
 ##### 既存の条件やファクトファイルを使用する
 
@@ -124,17 +110,6 @@ document-analyzer --source-file "条件ファイルのパス" --target-file "フ
 document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
 ```
 
-##### 条件やファクトファイルを編集した後の再度チェック
-
-条件やファクトを抽出した後にファイルを編集した場合、以下の方法で再度チェックを実行できます：
-
-```bash
-# 条件ファイルを編集した後に再度チェックを実行
-document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-conditions
-
-# ファクトファイルを編集した後に再度チェックを実行
-document-analyzer --source-file "条件ファイルのパス" --target-file "ファクトファイルのパス" --config "設定ファイルのパス" --use-existing-facts
-```
 
 
 ## 設定
