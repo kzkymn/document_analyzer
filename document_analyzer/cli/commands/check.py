@@ -457,7 +457,7 @@ class CheckCommand:
     help="既存の条件ファイルを使用し、条件の抽出処理をスキップします",
 )
 @click.option(
-    "--use_existing_facts",
+    "--use-existing-facts",
     is_flag=True,
     help="既存のファクトファイルを使用し、ファクトの抽出処理をスキップします",
 )
