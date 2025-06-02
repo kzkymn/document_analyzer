@@ -16,6 +16,9 @@ class PairCheckItemType(str, Enum):
 
     CONDITION = "condition"  # チェック条件
     FACT = "fact"  # ファクト
+    CHAPTER = "chapter"  # 章
+    SECTION = "section"  # 節
+    SUBSECTION = "subsection"  # 項
 
 
 class PairCheckItem(BaseModel):

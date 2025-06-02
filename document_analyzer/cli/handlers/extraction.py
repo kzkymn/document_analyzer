@@ -29,7 +29,7 @@ def extract_or_load_items(
     file_path: Union[str, Path],
     output_path: Union[str, Path],
     should_extract: bool,  # 抽出するかどうかを明示的に指定
-    source_context: Optional[
+    context_items: Optional[
         List[PairCheckItem]
     ] = None,  # ターゲット抽出時に使用するソースのコンテキスト
 ) -> List[PairCheckItem]:
@@ -68,7 +68,7 @@ def extract_or_load_items(
         else:  # item_type == "facts"
             items = extractor.extract_facts(
                 file_content,
-                source_context,  # conditionsを渡す
+                context_items,  # conditionsを渡す
                 str(file_path),
             )
 

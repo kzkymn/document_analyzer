@@ -5,7 +5,7 @@ llm:
   default: "gemini"  # デフォルトで使用するLLM
   models:
     gemini:
-      model_name: "gemini-2.0-flash"
+      model_name: "gemini-2.5-flash-preview-05-20"
       temperature: 0.2
       max_output_tokens: 8192 # トークン数を増やす
       top_p: 0.95

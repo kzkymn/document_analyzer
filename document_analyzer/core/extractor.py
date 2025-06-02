@@ -123,7 +123,7 @@ class TextExtractor:
     def extract_facts(
         self,
         text: str,
-        conditions: List[PairCheckItem],  # 新しく追加する引数
+        conditions: Optional[List[PairCheckItem]] = None,
         source: Optional[str] = None,
     ) -> List[PairCheckItem]:
         """
@@ -131,6 +131,7 @@ class TextExtractor:
 
         Args:
             text: テキスト
+            conditions: 抽出の基準となる条件のリスト (オプション)
             source: 出典（ファイルパスなど）
 
         Returns:
@@ -138,31 +139,90 @@ class TextExtractor:
         """
         self.logger.info("ファクトの抽出を開始します")
 
-        # チャンク処理の判断
-        if self.structure_analyzer.should_chunk_text(text):
-            self.logger.info(
-                "テキストが長いため、チャンクに分割してファクトを抽出します。"
-            )
-            chunks = self.structure_analyzer.chunk_text(text)
-            all_facts = []
-            for i, chunk in enumerate(chunks):
+        facts_dict = []
+
+        if conditions:
+            # 条件駆動型抽出
+            self.logger.info("条件駆動型ファクト抽出を開始します。")
+            if self.structure_analyzer.should_chunk_text(text):
                 self.logger.info(
-                    f"チャンク {i+1}/{len(chunks)} からファクトを抽出中..."
+                    "テキストが長いため、チャンクに分割してファクトを抽出します。"
                 )
-                # ConditionDrivenExtractorを強制適用
+                chunks = self.structure_analyzer.chunk_text(text)
+                all_facts = []
+                for i, chunk in enumerate(chunks):
+                    self.logger.info(
+                        f"チャンク {i+1}/{len(chunks)} からファクトを抽出中..."
+                    )
+                    facts_dict_chunk = (
+                        self.condition_driven_extractor.extract_facts_from_text(
+                            chunk, conditions, source
+                        )
+                    )
+                    all_facts.extend(facts_dict_chunk)
+                facts_dict = all_facts
+            else:
+                self.logger.info(
+                    "テキストが短いため、単一のLLM呼び出しでファクトを抽出します。"
+                )
                 facts_dict = self.condition_driven_extractor.extract_facts_from_text(
-                    chunk, conditions, source
+                    text, conditions, source
                 )
-                all_facts.extend(facts_dict)
-            facts_dict = all_facts
         else:
-            self.logger.info(
-                "テキストが短いため、単一のLLM呼び出しでファクトを抽出します。"
-            )
-            # ConditionDrivenExtractorを強制適用
-            facts_dict = self.condition_driven_extractor.extract_facts_from_text(
-                text, conditions, source
-            )
+            # 条件なしのファクト抽出
+            self.logger.info("条件なしのファクト抽出を開始します。")
+            if self.structure_analyzer.should_chunk_text(text):
+                self.logger.info(
+                    "テキストが長いため、チャンクに分割してファクトを抽出します。"
+                )
+                chunks = self.structure_analyzer.chunk_text(text)
+                all_facts = []
+                for i, chunk in enumerate(chunks):
+                    self.logger.info(
+                        f"チャンク {i+1}/{len(chunks)} からファクトを抽出中..."
+                    )
+                    structured_blocks = self.prompt_generator.structure_analyzer._analyze_document_structure(
+                        chunk
+                    )
+                    prompt = self.prompt_generator._get_fact_extraction_prompt(
+                        chunk,
+                        structured_blocks,
+                        [],  # conditionsがNoneの場合は空リストを渡す
+                    )
+                    llm_response = self.llm_processor.call_llm(prompt)
+                    try:
+                        facts_dict_chunk = (
+                            self.response_parser._parse_extraction_response(
+                                llm_response
+                            )
+                        )
+                        all_facts.extend(facts_dict_chunk)
+                    except ValueError as e:
+                        self.logger.warning(
+                            f"LLM応答のバリデーションに失敗しました: {e}。このチャンクはスキップされます。"
+                        )
+                facts_dict = all_facts
+            else:
+                self.logger.info(
+                    "テキストが短いため、単一のLLM呼び出しでファクトを抽出します。"
+                )
+                structured_blocks = self.prompt_generator.structure_analyzer._analyze_document_structure(
+                    text
+                )
+                prompt = self.prompt_generator._get_fact_extraction_prompt(
+                    text,
+                    structured_blocks,
+                    [],  # conditionsがNoneの場合は空リストを渡す
+                )
+                llm_response = self.llm_processor.call_llm(prompt)
+                try:
+                    facts_dict = self.response_parser._parse_extraction_response(
+                        llm_response
+                    )
+                except ValueError as e:
+                    self.logger.warning(
+                        f"LLM応答のバリデーションに失敗しました: {e}。ファクトは抽出されません。"
+                    )
 
         # PairCheckItemのリストに変換
         result = []

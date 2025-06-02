@@ -25,6 +25,9 @@ from document_analyzer.llm.gemini import GeminiProcessor
 class MockLLMProcessor(BaseLLMProcessor):
     """テスト用のLLMプロセッサーモッククラス"""
 
+    def __init__(self, config, model_config: Optional[Dict[str, Any]] = None):
+        super().__init__(config, model_config)
+
     def call_llm(self, prompt: str) -> Dict[str, Any]:
         """
         LLMを呼び出す（モック実装）。
@@ -93,7 +96,11 @@ class TestBaseLLMProcessor(unittest.TestCase):
 
         try:
             # テスト用のプロセッサーを作成
-            processor = MockLLMProcessor()
+            # Configクラスのインスタンスを直接作成し、一時設定ファイルをロード
+            from document_analyzer.utils.config import Config
+
+            mock_config = Config(config_path=temp_config.name)
+            processor = MockLLMProcessor(mock_config)
 
             # プロンプトを生成
             prompt = processor.generate_prompt(
@@ -130,7 +137,11 @@ class TestBaseLLMProcessor(unittest.TestCase):
 
         try:
             # テスト用のプロセッサーを作成
-            processor = MockLLMProcessor()
+            # Configクラスのインスタンスを直接作成し、一時設定ファイルをロード
+            from document_analyzer.utils.config import Config
+
+            mock_config = Config(config_path=temp_config.name)
+            processor = MockLLMProcessor(mock_config)
 
             # プロンプトを生成
             prompt = processor.generate_prompt(

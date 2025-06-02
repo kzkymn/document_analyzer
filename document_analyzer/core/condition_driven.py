@@ -44,17 +44,20 @@ class ConditionDrivenExtractor:
         current_token_count = len(text) // 4  # テキストのトークン数（概算）
         token_limit = 8192  # Geminiの出力トークン制限
 
-        for condition in conditions:
-            condition_token_count = len(condition.text) // 4  # 条件のトークン数（概算）
-            if (
-                current_token_count + condition_token_count > token_limit
-                and current_batch
-            ):
-                condition_batches.append(current_batch)
-                current_batch = []
-                current_token_count = len(text) // 4
-            current_batch.append(condition)
-            current_token_count += condition_token_count
+        if conditions:
+            for condition in conditions:
+                condition_token_count = (
+                    len(condition.text) // 4
+                )  # 条件のトークン数（概算）
+                if (
+                    current_token_count + condition_token_count > token_limit
+                    and current_batch
+                ):
+                    condition_batches.append(current_batch)
+                    current_batch = []
+                    current_token_count = len(text) // 4
+                current_batch.append(condition)
+                current_token_count += condition_token_count
 
         if current_batch:
             condition_batches.append(current_batch)

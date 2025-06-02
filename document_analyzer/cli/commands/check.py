@@ -137,8 +137,8 @@ class CheckCommand:
                         "facts",
                         self.target_file,
                         self.facts_output,
-                        True,  # should_extract
-                        source_context=source_context,
+                        should_extract=True,
+                        context_items=source_context,
                     )
                     self.console.print(
                         f"[bold green]ファクトの抽出が完了しました。[/bold green]"
