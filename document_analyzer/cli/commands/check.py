@@ -253,7 +253,7 @@ class CheckCommand:
                         self.target_file,
                         self.facts_output,
                         True,  # should_extract
-                        source_context=source_context,
+                        context_items=conditions,
                     )
                 else:
                     facts = []
